@@ -1,0 +1,9 @@
+# Highly recommended: Use Python 3.10 to avoid dlib compilation errors on Windows
+Flask>=2.0.0
+pandas
+
+# Numpy < 2.0 and OpenCV < 4.9 are required because the pre-compiled dlib module
+# was built against Numpy 1.x and will crash on Numpy 2.0's new memory architecture.
+opencv-python>=4.5.0,<4.9.0
+numpy<2.0.0
+dlib>=19.22.0

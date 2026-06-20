@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card p-4">
+            <h2 class="mb-4"><i class="fa-solid fa-user-plus me-2"></i> Register New Face</h2>
+            
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <label class="form-label">Person Name</label>
+                    <div class="input-group">
+                        <input type="text" id="personName" class="form-control" placeholder="Enter Full Name">
+                        <button id="startCaptureBtn" class="btn btn-primary">Start Capture</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="videoSection" style="display: none;">
+                <h5 class="text-center mb-3">Please look directly at the camera</h5>
+                <div class="video-container mb-3">
+                    <img id="videoFeed" src="" alt="Video Feed">
+                </div>
+                
+                <div class="progress mb-3" style="height: 25px;">
+                    <div id="captureProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                
+                <div id="statusText" class="text-center text-warning fw-bold"></div>
+            </div>
+            
+            <div id="successSection" class="text-center mt-4" style="display: none;">
+                <i class="fa-solid fa-circle-check fa-4x text-success mb-3"></i>
+                <h4>Registration Complete!</h4>
+                <p>Images have been successfully captured.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary mt-2">Back to Dashboard</a>
+                <button onclick="location.reload()" class="btn btn-primary mt-2">Register Another</button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let checkStatusInterval;
+    
+    $('#startCaptureBtn').click(function() {
+        const name = $('#personName').val().trim();
+        if (!name) {
+            alert('Please enter a name first.');
+            return;
+        }
+        
+        $('#startCaptureBtn').prop('disabled', true);
+        $('#personName').prop('disabled', true);
+        
+        $.ajax({
+            url: '/api/start_registration',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({name: name}),
+            success: function(response) {
+                if(response.success) {
+                    $('#videoFeed').attr('src', '/video_feed');
+                    $('#videoSection').show();
+                    
+                    checkStatusInterval = setInterval(checkStatus, 1000);
+                }
+            }
+        });
+    });
+    
+    function checkStatus() {
+        $.get('/api/registration_status', function(data) {
+            if (data.registering) {
+                let percent = (data.count / data.max) * 100;
+                $('#captureProgress').css('width', percent + '%').text(Math.round(percent) + '%');
+                $('#statusText').text(`Capturing... ${data.count}/${data.max}`);
+            } else if (data.complete) {
+                clearInterval(checkStatusInterval);
+                $('#videoFeed').attr('src', ''); // Stop stream
+                $('#videoSection').hide();
+                $('#successSection').show();
+                $.post('/api/release_camera'); // explicitly release camera resource
+            }
+        });
+    }
+
+    // Ensure camera is released if the user navigates away from the page
+    $(window).on('beforeunload', function() {
+        if ($('#videoSection').is(':visible')) {
+            navigator.sendBeacon('/api/release_camera');
+        }
+    });
+</script>
+{% endblock %}

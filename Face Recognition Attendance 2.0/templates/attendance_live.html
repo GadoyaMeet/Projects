@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card p-4">
+            <h2 class="mb-4 text-center"><i class="fa-solid fa-camera-viewfinder text-success me-2"></i> Live Attendance System</h2>
+            
+            <div class="row">
+                <div class="col-md-8 mx-auto">
+                    <div class="video-container shadow-lg mb-4">
+                        <img src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-2">
+                <p class="text-muted">Faces are recognized and logged automatically. Stand clearly in front of the camera.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Stop & Go Back</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#videoFeed').attr('src', '/video_feed');
+    });
+
+    // Ensure camera is released if the user navigates away from the page using back button or closing tab
+    $(window).on('beforeunload', function() {
+        navigator.sendBeacon('/api/release_camera');
+    });
+</script>
+{% endblock %}

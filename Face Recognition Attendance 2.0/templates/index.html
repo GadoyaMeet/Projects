@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row text-center mt-5">
+    <div class="col-12">
+        <h1 class="display-4 fw-bold mb-4">Welcome to Face Recognition Attendance</h1>
+        <p class="lead text-muted mb-5">Manage face registrations, train models, and view attendance all in one place.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+            <i class="fa-solid fa-user-plus fa-3x text-primary mb-3"></i>
+            <h3 class="card-title">Register Faces</h3>
+            <p class="card-text text-muted">Add new people to the database by capturing their face using the webcam.</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary mt-auto">Go to Registration</a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+            <i class="fa-solid fa-camera-viewfinder fa-3x text-success mb-3"></i>
+            <h3 class="card-title">Take Attendance</h3>
+            <p class="card-text text-muted">Start the live camera feed to automatically recognize faces and mark attendance.</p>
+            <a href="{{ url_for('take_attendance') }}" class="btn btn-success mt-auto">Start Camera</a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 text-center p-4">
+            <i class="fa-solid fa-calendar-check fa-3x text-info mb-3"></i>
+            <h3 class="card-title">View Records</h3>
+            <p class="card-text text-muted">Browse attendance records by date to see who was present.</p>
+            <a href="{{ url_for('view_attendance') }}" class="btn btn-info mt-auto text-white">View Logs</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12 text-center">
+        <div class="card p-4">
+            <h3><i class="fa-solid fa-brain me-2"></i> Model Training</h3>
+            <p class="text-muted">After registering new faces, you must train the model to extract features.</p>
+            <button id="trainBtn" class="btn btn-warning btn-lg mx-auto w-50">Train Models</button>
+            <div id="trainStatus" class="mt-3 text-info fw-bold"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $('#trainBtn').click(function() {
+        var btn = $(this);
+        var status = $('#trainStatus');
+        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Training...');
+        status.text("Extracting 128D features. This may take a while...");
+        
+        $.ajax({
+            url: '/api/train',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                if(response.success) {
+                    status.removeClass('text-info text-danger').addClass('text-success').text(response.message);
+                } else {
+                    status.removeClass('text-info text-success').addClass('text-danger').text(response.message);
+                }
+                btn.prop('disabled', false).html('Train Models');
+            },
+            error: function() {
+                status.removeClass('text-info text-success').addClass('text-danger').text("An error occurred during training.");
+                btn.prop('disabled', false).html('Train Models');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card p-4">
+            <h2 class="mb-4"><i class="fa-solid fa-calendar-days text-info me-2"></i> View Attendance Records</h2>
+            
+            <form method="POST" action="{{ url_for('view_attendance') }}" class="row g-3 align-items-center mb-5">
+                <div class="col-auto">
+                    <label for="datePicker" class="col-form-label fw-bold">Select Date:</label>
+                </div>
+                <div class="col-auto">
+                    <input type="date" class="form-control bg-dark text-white border-secondary" id="datePicker" name="selected_date" value="{{ selected_date }}" required>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-info text-white">Fetch Records</button>
+                </div>
+            </form>
+
+            {% if no_data %}
+            <div class="alert alert-warning text-center">
+                <i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block"></i>
+                No attendance records found for <strong>{{ selected_date }}</strong>.
+            </div>
+            {% endif %}
+
+            {% if attendance_data %}
+            <h4 class="mb-3 text-success">Records for {{ selected_date }}</h4>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover rounded overflow-hidden">
+                    <thead>
+                        <tr class="table-primary text-dark">
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Time of Entry</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index in range(attendance_data|length) %}
+                        <tr>
+                            <td>{{ index + 1 }}</td>
+                            <td class="fw-bold">{{ attendance_data[index][0] }}</td>
+                            <td>{{ attendance_data[index][1] }}</td>
+                            <td><span class="badge bg-success"><i class="fa-solid fa-check"></i> Present</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

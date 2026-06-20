@@ -1,0 +1,23 @@
+# Environments
+venv/
+env/
+.env
+.venv/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite databases (optional: remove if you want to push your attendance records)
+attendance.db
+
+# Project specific local data (optional: remove if you want to push captured faces)
+data/data_faces_from_camera/
+data/features_all.csv
+
+# OS generated files
+.DS_Store
+Thumbs.db
