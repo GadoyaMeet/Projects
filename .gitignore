@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+attendance.db
+data/data_faces_from_camera/*
+!data/data_faces_from_camera/.gitkeep
+data/features_all.csv
+face-env-py310/
+.vscode/
+.idea/
