@@ -1,0 +1,28 @@
+{
+  "model_type": "XGBClassifier",
+  "scale_pos_weight": 51.5,
+  "test_samples": 875,
+  "test_default_count": 17,
+  "baseline_pr_auc": 0.0194,
+  "pr_auc": 0.4202,
+  "roc_auc": 0.9488,
+  "optimal_threshold": 0.7692,
+  "f1_at_optimal_threshold": 0.4545,
+  "confusion_matrix": {
+    "true_negatives": 858,
+    "false_positives": 0,
+    "false_negatives": 12,
+    "true_positives": 5
+  },
+  "feature_importance_gain": {
+    "interest_coverage_ratio": 0.21492987871170044,
+    "debt_to_equity": 0.18255624175071716,
+    "current_ratio": 0.10770297050476074,
+    "cash_to_debt": 0.10637995600700378,
+    "retained_earnings_to_assets": 0.10178163647651672,
+    "operating_margin": 0.0873522162437439,
+    "macro_gdp_growth": 0.08052362501621246,
+    "revenue_growth_yoy": 0.06853505223989487,
+    "macro_inflation_rate": 0.050238385796546936
+  }
+}

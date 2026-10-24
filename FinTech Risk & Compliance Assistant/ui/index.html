@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise FinTech Risk & Compliance Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon">FR</div>
+      <div class="brand-text">
+        <h1>FinTech Risk & Compliance Assistant</h1>
+        <p>Autonomous Multi-Agent Underwriting & Temporal Risk Engine</p>
+      </div>
+    </div>
+    <div class="system-badges">
+      <div class="badge"><span class="badge-dot"></span> PostgreSQL / SQLite SCD-2: Active</div>
+      <div class="badge"><span class="badge-dot"></span> XGBoost v3.4.1: Calibrated</div>
+      <div class="badge"><span class="badge-dot"></span> Hybrid RAG (BM25 + Cross-Encoder): Online</div>
+    </div>
+  </header>
+
+  <!-- Main Grid Dashboard -->
+  <main class="container">
+
+    <!-- Left Controls Sidebar -->
+    <aside class="sidebar-column">
+
+      <!-- Scenario Presets -->
+      <section class="glass-card">
+        <h2 class="card-title">Scenario Selector</h2>
+        <div class="presets-grid">
+          <button type="button" class="preset-btn active" id="btn-preset-apex" onclick="loadScenario('apex')">
+            <div class="preset-title">
+              <span>Apex Cloud Solutions</span>
+              <span style="color: var(--color-success); font-size: 0.8rem;">Tier 1 Growth</span>
+            </div>
+            <div class="preset-desc">SaaS Orchestration | $10M Facility | SCD-2 Rating: AA</div>
+          </button>
+
+          <button type="button" class="preset-btn" id="btn-preset-omni" onclick="loadScenario('omni')">
+            <div class="preset-title">
+              <span>OmniCommerce Retail</span>
+              <span style="color: var(--color-danger); font-size: 0.8rem;">Special Assets</span>
+            </div>
+            <div class="preset-desc">E-Commerce | $5M Distress Extension | SCD-2 Rating: CCC</div>
+          </button>
+        </div>
+
+        <form id="underwrite-form" onsubmit="runUnderwriting(event)">
+          <div class="form-group">
+            <label class="form-label" for="borrower-select">Borrower Entity</label>
+            <select class="form-control" id="borrower-select" onchange="onBorrowerChange()">
+              <option value="BORR-TECH-001">BORR-TECH-001 — Apex Cloud Solutions Inc.</option>
+              <option value="BORR-RETL-004">BORR-RETL-004 — OmniCommerce Global Retail</option>
+              <option value="BORR-HLTH-002">BORR-HLTH-002 — BioVanguard Therapeutics LLC</option>
+              <option value="BORR-ENRG-003">BORR-ENRG-003 — Solaris Clean Energy Corp</option>
+              <option value="BORR-MANU-005">BORR-MANU-005 — Titan Precision Manufacturing</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="facility-input">Requested Facility ($ USD)</label>
+            <input type="number" class="form-control" id="facility-input" value="10000000" step="250000" min="50000" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="query-input">Underwriting Query / Prompt</label>
+            <textarea class="form-control" id="query-input" required>Please prepare a comprehensive credit committee underwriting memo for Apex Cloud Solutions requesting a $10M revolving facility.</textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btn-submit">
+            <span class="spinner" id="submit-spinner"></span>
+            <span id="btn-text">Execute Multi-Agent Underwriting</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- SCD-2 Point-in-Time Time Travel Panel (R2 Q4) -->
+      <section class="glass-card time-travel-card">
+        <h2 class="card-title">SCD-2 Time-Travel Audit (R2 Q4)</h2>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Reconstruct borrower credit profile, PD estimate, and financial ratios at any point in history.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="audit-date-picker">Target Historical Date</label>
+          <div class="time-travel-row">
+            <input type="date" class="form-control" id="audit-date-picker" value="2024-06-01">
+            <button type="button" class="btn-secondary" id="btn-time-travel" onclick="runTimeTravelQuery()">Reconstruct</button>
+          </div>
+        </div>
+
+        <div class="time-travel-result" id="time-travel-output">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- Right Main Results Area -->
+    <section class="results-column">
+
+      <!-- Executive Metric Tiles -->
+      <div class="results-header-banner">
+        <div class="metric-tile">
+          <div class="metric-title">Committee Verdict</div>
+          <div class="metric-value" id="res-verdict">—</div>
+          <span class="verdict-badge" id="res-badge">WAITING TO RUN</span>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-title">ML Default Risk (XGBoost)</div>
+          <div class="metric-value" id="res-default-prob" style="color: var(--accent-cyan);">—</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;" id="res-risk-tier">Tier: Evaluating</div>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-title">SCD-2 Active Grade</div>
+          <div class="metric-value" id="res-scd2-rating" style="color: var(--accent-blue);">—</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;" id="res-scd2-score">Score: —</div>
+        </div>
+
+        <div class="metric-tile">
+          <div class="metric-title">LLMOps Telemetry</div>
+          <div class="metric-value" id="res-latency" style="font-size: 1.25rem;">0 ms</div>
+          <div style="font-size: 0.75rem; color: var(--color-success); margin-top: 0.35rem;" id="res-guardrails">Guardrails: Verified</div>
+        </div>
+      </div>
+
+      <!-- Live Agent Execution Timeline -->
+      <div class="glass-card">
+        <h2 class="card-title">Multi-Agent Execution Graph</h2>
+        <div class="agent-timeline" id="agent-timeline-container">
+          <div class="agent-step done">
+            <span class="agent-tag">System</span>
+            <span>Warehouse initialized with deduplicated clean transactions & temporal SCD-2 tables. Ready for execution.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit Underwriting Memo Display -->
+      <div class="glass-card">
+        <h2 class="card-title">Credit Underwriting Decision Memo (Synthesizer Output)</h2>
+        <div class="memo-container" id="memo-output-container">
+          <p style="color: var(--text-muted); font-style: italic;">
+            Click "Execute Multi-Agent Underwriting" or select a scenario preset to run the 4-agent underwriting pipeline and generate a comprehensive credit memorandum.
+          </p>
+        </div>
+      </div>
+
+      <!-- Citations & Grounding Sources -->
+      <div class="glass-card">
+        <h2 class="card-title">Verifiable Grounding Sources & Citations</h2>
+        <div class="citations-list" id="citations-container">
+          <p style="color: var(--text-muted); font-size: 0.85rem;">No citations loaded yet.</p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="/ui/app.js"></script>
+</body>
+</html>
