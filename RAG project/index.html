@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local RAG Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    .prose-custom p { margin-bottom: 0.5rem; }
+    .prose-custom p:last-child { margin-bottom: 0; }
+    .prose-custom ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.5rem; }
+    .prose-custom ol { list-style-type: decimal; margin-left: 1.25rem; margin-bottom: 0.5rem; }
+    .prose-custom code { background-color: #1e293b; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.75rem; }
+    .prose-custom pre { background-color: #020617; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #1e293b; }
+    .prose-custom pre code { background: transparent; padding: 0; }
+    .prose-custom strong { color: #f8fafc; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex font-sans overflow-hidden">
+
+  <!-- Left Sidebar (Sessions / History) -->
+  <aside class="w-64 bg-slate-900/60 border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen">
+    <div class="p-4 flex flex-col h-full">
+      
+      <!-- New Chat Button -->
+      <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-2.5 px-4 rounded-xl transition shadow-sm mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>New Chat</span>
+      </button>
+
+      <div class="text-[10px] font-semibold tracking-wider uppercase text-slate-500 mb-2 px-1">Recent Chats</div>
+      
+      <!-- Session List Container -->
+      <div id="session-list" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs"></div>
+    </div>
+
+    <!-- Status Footer -->
+    <div class="p-3 border-t border-slate-800 text-[11px] text-slate-500 flex justify-between items-center bg-slate-950/40">
+      <div class="flex items-center gap-1.5">
+        <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+        <span>Qwen2.5-3B</span>
+      </div>
+      <span id="stats-badge" class="font-mono text-[10px]">0 Chunks</span>
+    </div>
+  </aside>
+
+  <!-- Main Chat Stage -->
+  <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    
+    <!-- Top Header -->
+    <header class="h-14 border-b border-slate-800 bg-slate-900/30 px-6 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <h2 id="current-chat-title" class="text-xs font-semibold text-slate-300">New Chat</h2>
+      </div>
+      <span class="text-[10px] text-slate-500 font-mono">SQLite Session Isolated</span>
+    </header>
+
+    <!-- Message Scroll Canvas -->
+    <div id="chat-stream" class="flex-1 overflow-y-auto p-6 space-y-5 max-w-3xl w-full mx-auto">
+      <div id="empty-state" class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 text-xs text-slate-400 leading-relaxed text-center mt-10">
+        Start a conversation. You can attach a document using <span class="font-bold text-slate-200">+</span> for strict document Q&A, or chat freely with multi-turn memory.
+      </div>
+    </div>
+
+    <!-- Input Bar Area -->
+    <div class="max-w-3xl w-full mx-auto p-4">
+      
+      <!-- Attachment Chip -->
+      <div id="file-chip" class="hidden mb-2 inline-flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300">
+        <span class="text-sm">📄</span>
+        <span id="file-chip-name" class="truncate max-w-xs font-mono">filename.pdf</span>
+        <button onclick="removeAttachedFile()" type="button" class="text-slate-400 hover:text-rose-400 text-sm ml-1">✕</button>
+      </div>
+
+      <!-- Prompt Input -->
+      <form onsubmit="handleSend(event)" class="bg-slate-900 border border-slate-800 focus-within:border-slate-600 rounded-2xl p-2 flex items-center gap-2 shadow-lg transition">
+        
+        <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt" onchange="handleFilePicked(event)">
+        
+        <button type="button" onclick="document.getElementById('file-input').click()" 
+                class="h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition" 
+                title="Attach Document">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+
+        <input type="text" id="user-input" placeholder="Ask anything, or ask follow-ups..." autocomplete="off"
+               class="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none px-2 py-1.5">
+
+        <button type="submit" id="send-btn" 
+                class="h-9 w-9 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition disabled:opacity-50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+  </main>
+
+  <script>
+    let currentSessionId = crypto.randomUUID();
+    let attachedFile = null;
+    let isFileAlreadyIndexed = false;
+
+    loadSessions();
+    refreshStats();
+
+    async function refreshStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('stats-badge').innerText = `${data.total_chunks} Chunks`;
+      } catch (err) {
+        document.getElementById('stats-badge').innerText = `Offline`;
+      }
+    }
+
+    async function loadSessions() {
+      try {
+        const res = await fetch('/api/sessions');
+        const sessions = await res.json();
+        const list = document.getElementById('session-list');
+        list.innerHTML = "";
+
+        sessions.forEach(s => {
+          const item = document.createElement('div');
+          const isActive = s.id === currentSessionId;
+          item.className = `group flex items-center justify-between p-2 rounded-lg cursor-pointer transition ${
+            isActive ? 'bg-slate-800 text-indigo-300' : 'hover:bg-slate-800/50 text-slate-400'
+          }`;
+          
+          item.innerHTML = `
+            <div class="truncate flex-1 pr-2" onclick="resumeSession('${s.id}', '${s.title.replace(/'/g, "\\'")}')">
+              ${s.title}
+            </div>
+            <button onclick="deleteSession(event, '${s.id}')" class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-xs px-1">
+              🗑
+            </button>
+          `;
+          list.appendChild(item);
+        });
+      } catch (e) {
+        console.error("Failed to load sessions:", e);
+      }
+    }
+
+    function startNewChat() {
+      currentSessionId = crypto.randomUUID();
+      document.getElementById('current-chat-title').innerText = "New Chat";
+      document.getElementById('chat-stream').innerHTML = `
+        <div id="empty-state" class="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 text-xs text-slate-400 leading-relaxed text-center mt-10">
+          Start a new conversation. Multi-turn context is active and isolated to this chat.
+        </div>
+      `;
+      removeAttachedFile();
+      loadSessions();
+    }
+
+    async function resumeSession(sessionId, title) {
+      currentSessionId = sessionId;
+      document.getElementById('current-chat-title').innerText = title;
+      loadSessions();
+
+      const res = await fetch(`/api/sessions/${sessionId}/messages`);
+      const messages = await res.json();
+      const chat = document.getElementById('chat-stream');
+      chat.innerHTML = "";
+
+      if (messages.length === 0) {
+        startNewChat();
+        return;
+      }
+
+      messages.forEach(m => {
+        if (m.sender === "user") {
+          appendUserBubble(m.content);
+        } else {
+          appendAssistantBubble(m.content, m.mode, m.sources);
+        }
+      });
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function deleteSession(event, sessionId) {
+      event.stopPropagation();
+      if (!confirm("Delete this chat?")) return;
+
+      await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+      if (currentSessionId === sessionId) {
+        startNewChat();
+      } else {
+        loadSessions();
+      }
+    }
+
+    function handleFilePicked(e) {
+      if (e.target.files.length > 0) {
+        attachedFile = e.target.files[0];
+        isFileAlreadyIndexed = false;
+        document.getElementById('file-chip-name').innerText = attachedFile.name;
+        document.getElementById('file-chip').classList.remove('hidden');
+        document.getElementById('user-input').focus();
+      }
+    }
+
+    function removeAttachedFile() {
+      attachedFile = null;
+      isFileAlreadyIndexed = false;
+      document.getElementById('file-input').value = "";
+      document.getElementById('file-chip').classList.add('hidden');
+    }
+
+    function appendUserBubble(text, fileName = null) {
+      const emptyState = document.getElementById('empty-state');
+      if (emptyState) emptyState.remove();
+
+      const chat = document.getElementById('chat-stream');
+      const bubble = document.createElement('div');
+      bubble.className = "flex flex-col items-end space-y-1";
+      bubble.innerHTML = `
+        <div class="bg-indigo-600 text-white text-xs px-4 py-2.5 rounded-2xl rounded-tr-none max-w-lg leading-relaxed shadow-sm">
+          ${fileName ? `<div class="text-[10px] opacity-80 pb-1 mb-1 border-b border-indigo-400 font-mono">📎 ${fileName}</div>` : ''}
+          ${text}
+        </div>
+      `;
+      chat.appendChild(bubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function appendAssistantBubble(content, mode, sources) {
+      const chat = document.getElementById('chat-stream');
+      const isDoc = mode === "document";
+      const modeBadge = isDoc
+        ? `<span class="bg-emerald-950/70 text-emerald-400 border border-emerald-800/80 text-[10px] px-2 py-0.5 rounded font-mono">📄 Verified from Document</span>`
+        : `<span class="bg-sky-950/70 text-sky-400 border border-sky-850/80 text-[10px] px-2 py-0.5 rounded font-mono">🌐 General Knowledge</span>`;
+
+      let sourcesHtml = "";
+      if (sources && sources.length > 0) {
+        sourcesHtml = sources.map(s => `
+          <div class="bg-slate-950 border border-slate-800/80 rounded p-2 text-[11px] text-slate-400 space-y-0.5">
+            <div class="text-[10px] text-emerald-400 font-mono">Source: ${s.source} (Page ${s.page})</div>
+            <p class="italic text-slate-500">"${s.snippet}"</p>
+          </div>
+        `).join('');
+      }
+
+      const botBubble = document.createElement('div');
+      botBubble.className = "bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs space-y-3 max-w-xl shadow-sm";
+      botBubble.innerHTML = `
+        <div class="flex items-center justify-between pb-1 border-b border-slate-800/50">
+          ${modeBadge}
+        </div>
+        <div class="text-slate-200 leading-relaxed font-sans prose-custom">${marked.parse(content)}</div>
+        ${sourcesHtml ? `
+          <div class="pt-2 border-t border-slate-800/80">
+            <div class="text-[10px] uppercase font-semibold text-slate-500 mb-1.5">Citations:</div>
+            <div class="space-y-1.5">${sourcesHtml}</div>
+          </div>` : ''}
+      `;
+      chat.appendChild(botBubble);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function handleSend(e) {
+      e.preventDefault();
+      const input = document.getElementById('user-input');
+      const question = input.value.trim();
+      if (!question && !attachedFile) return;
+
+      const chat = document.getElementById('chat-stream');
+      const sendBtn = document.getElementById('send-btn');
+      const hasDoc = attachedFile !== null;
+      const currentFileName = hasDoc ? attachedFile.name : null;
+
+      appendUserBubble(question || "Summarize this document", currentFileName);
+
+      const botBubble = document.createElement('div');
+      botBubble.className = "bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs space-y-3 max-w-xl shadow-sm";
+      botBubble.innerHTML = `
+        <div id="badge-container" class="flex items-center justify-between pb-1 border-b border-slate-800/50">
+          <span class="text-slate-500 text-[10px] animate-pulse">Thinking...</span>
+        </div>
+        <div id="stream-content" class="text-slate-200 leading-relaxed font-sans prose-custom"></div>
+        <div id="citations-container" class="hidden pt-2 border-t border-slate-800/80">
+          <div class="text-[10px] uppercase font-semibold text-slate-500 mb-1.5">Citations:</div>
+          <div id="citations-list" class="space-y-1.5"></div>
+        </div>
+      `;
+      chat.appendChild(botBubble);
+      chat.scrollTop = chat.scrollHeight;
+
+      const badgeContainer = botBubble.querySelector('#badge-container');
+      const streamContent = botBubble.querySelector('#stream-content');
+      const citationsContainer = botBubble.querySelector('#citations-container');
+      const citationsList = botBubble.querySelector('#citations-list');
+
+      input.value = "";
+      sendBtn.disabled = true;
+
+      try {
+        if (hasDoc && !isFileAlreadyIndexed) {
+          badgeContainer.innerHTML = `<span class="text-amber-400 text-[10px] animate-pulse">Indexing document...</span>`;
+          const formData = new FormData();
+          formData.append("file", attachedFile);
+          const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+          if (!uploadRes.ok) throw new Error("Document indexing failed");
+          isFileAlreadyIndexed = true;
+          refreshStats();
+        }
+
+        const response = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            session_id: currentSessionId,
+            question: question || "Provide a summary of the uploaded document.", 
+            top_k: 4,
+            has_document: hasDoc,
+            filename: currentFileName
+          })
+        });
+
+        if (!response.ok) {
+          const errorDetails = await response.text();
+          throw new Error(`Server returned ${response.status}: ${errorDetails}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let accumulatedMarkdown = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          buffer = events.pop();
+
+          for (const event of events) {
+            if (event.startsWith("data: ")) {
+              const data = JSON.parse(event.replace("data: ", ""));
+
+              if (data.type === "meta") {
+                const isDoc = data.mode === "document";
+                badgeContainer.innerHTML = isDoc
+                  ? `<span class="bg-emerald-950/70 text-emerald-400 border border-emerald-800/80 text-[10px] px-2 py-0.5 rounded font-mono">📄 Verified from Document</span>`
+                  : `<span class="bg-sky-950/70 text-sky-400 border border-sky-850/80 text-[10px] px-2 py-0.5 rounded font-mono">🌐 General Knowledge</span>`;
+
+                if (data.sources && data.sources.length > 0) {
+                  citationsList.innerHTML = data.sources.map(s => `
+                    <div class="bg-slate-950 border border-slate-800/80 rounded p-2 text-[11px] text-slate-400 space-y-0.5">
+                      <div class="text-[10px] text-emerald-400 font-mono">Source: ${s.source} (Page ${s.page})</div>
+                      <p class="italic text-slate-500">"${s.snippet}"</p>
+                    </div>
+                  `).join('');
+                  citationsContainer.classList.remove('hidden');
+                }
+              } else if (data.type === "token") {
+                accumulatedMarkdown += data.content;
+                streamContent.innerHTML = marked.parse(accumulatedMarkdown);
+                chat.scrollTop = chat.scrollHeight;
+              } else if (data.type === "done") {
+                loadSessions();
+              }
+            }
+          }
+        }
+      } catch (err) {
+        streamContent.innerHTML = `<span class="text-rose-400">${err.message}</span>`;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
