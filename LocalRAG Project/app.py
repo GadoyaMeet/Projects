@@ -21,8 +21,8 @@ from step2_chunking import split_documents_into_chunks
 
 app = FastAPI(title="Unified SQLite Local RAG")
 
-SQLITE_DB = "rag_vault.db"
-DATA_DIRECTORY = "./data"
+SQLITE_DB = os.getenv("SQLITE_DB", "rag_vault.db")
+DATA_DIRECTORY = os.getenv("DATA_DIRECTORY", "./data")
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
 # -------------------------------------------------------------
@@ -71,9 +71,11 @@ init_sqlite_db()
 # -------------------------------------------------------------
 # 2. Local Models Configuration
 # -------------------------------------------------------------
-embeddings = OllamaEmbeddings(model="nomic-embed-text")
-rag_llm = ChatOllama(model="qwen2.5:3b", temperature=0, num_ctx=3072)
-chat_llm = ChatOllama(model="qwen2.5:3b", temperature=0.7, num_ctx=3072)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url=OLLAMA_BASE_URL)
+rag_llm = ChatOllama(model="qwen2.5:3b", temperature=0, num_ctx=3072, base_url=OLLAMA_BASE_URL)
+chat_llm = ChatOllama(model="qwen2.5:3b", temperature=0.7, num_ctx=3072, base_url=OLLAMA_BASE_URL)
 
 rag_prompt = ChatPromptTemplate.from_template(
     """You are a helpful assistant reading from an attached document and maintaining an ongoing conversation.

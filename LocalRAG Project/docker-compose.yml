@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  ragvault:
+    build: .
+    image: ragvault:latest
+    container_name: ragvault-app
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - DATA_DIRECTORY=/app/data
+      - SQLITE_DB=/app/data/rag_vault.db
+    volumes:
+      # Persists SQLite database and uploaded documents on your host machine
+      - ./data:/app/data
+    extra_hosts:
+      # Enables the container to communicate with Ollama running on your host machine
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+

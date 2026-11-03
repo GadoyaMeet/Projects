@@ -1,0 +1,31 @@
+# Virtual environment & Python cache
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Git files
+.git/
+.gitignore
+
+# Database & Uploaded Data
+*.db
+*.db-journal
+data/
+rag_vault.db
+
+# Test & Sample files
+sample.pdf
+sample.txt
+
+# Environment secrets
+.env
+
+# Docker & Doc files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+README.md
+

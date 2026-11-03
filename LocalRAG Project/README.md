@@ -174,3 +174,48 @@ For learning or debugging individual components of the RAG architecture:
 
 ---
 
+
+## Docker Deployment
+
+You can containerize and run RagVault using Docker.
+
+### 1. Run with Docker Compose (Recommended)
+
+```bash
+# Build and start the container
+docker compose up -d --build
+
+# View logs
+docker compose logs -f
+
+# Stop the container
+docker compose down
+```
+
+### 2. Build & Run Manually
+
+```bash
+# Build the Docker image
+docker build -t ragvault:latest .
+
+# Run the container (connecting to Ollama on host machine)
+docker run -d -p 8000:8000 \
+  --name ragvault-app \
+  --add-host host.docker.internal:host-gateway \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -v ${PWD}/data:/app/data \
+  ragvault:latest
+```
+
+### 3. Push / Upload to Docker Hub
+
+```bash
+# 1. Log in to Docker Hub
+docker login
+
+# 2. Tag your image with your Docker Hub username
+docker tag ragvault:latest <your-dockerhub-username>/ragvault:latest
+
+# 3. Push to Docker Hub
+docker push <your-dockerhub-username>/ragvault:latest
+```
