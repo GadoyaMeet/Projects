@@ -1,0 +1,56 @@
+# User Data & Uploads
+data/
+
+# Databases & Vector Stores (Local RAG & ChromaDB)
+rag_vault.db
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+.chroma/
+faiss_index/
+*.faiss
+*.pkl
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Bytecode & Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Logs & Temporary Files
+*.log
+logs/
+*.tmp
+*.temp
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
